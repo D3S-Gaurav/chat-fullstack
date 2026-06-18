@@ -2,7 +2,7 @@
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     // File Layout
-    "rootDir": "./src",
+    "rootDir": ".",
     "outDir": "./dist",
 
     // Environment Settings
@@ -38,6 +38,6 @@
     "moduleDetection": "force",
     "skipLibCheck": true,
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist", "generated"]
+  "include": ["src", "generated/prisma"],
+  "exclude": ["node_modules", "dist"]
 }
