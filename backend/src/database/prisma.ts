@@ -1,17 +1,6 @@
-/**
- * @module database/prisma
- */
-
 import { PrismaClient } from '../../generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
-
-const DATABASE_URL = process.env['DATABASE_URL'];
-if (!DATABASE_URL) {
-  throw new Error(
-    '[database/prisma] DATABASE_URL is not set. ' +
-    'Ensure your .env file exists and is loaded before this module.'
-  );
-}
+import { env } from '../config/env.js';
 
 const globalForPrisma = globalThis as unknown as {
   __prismaClient: PrismaClient | undefined;
@@ -19,14 +8,14 @@ const globalForPrisma = globalThis as unknown as {
 
 function createPrismaClient(): PrismaClient {
   const adapter = new PrismaPg({
-    connectionString: DATABASE_URL,
-    ssl: { rejectUnauthorized: false }, // Required for Supabase hosted Postgres
+    connectionString: env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
   });
 
   return new PrismaClient({
     adapter,
     log:
-      process.env['NODE_ENV'] === 'development'
+      env.NODE_ENV === 'development'
         ? ['query', 'warn', 'error']
         : ['warn', 'error'],
   });
@@ -35,7 +24,7 @@ function createPrismaClient(): PrismaClient {
 export const prisma: PrismaClient =
   globalForPrisma.__prismaClient ?? createPrismaClient();
 
-if (process.env['NODE_ENV'] !== 'production') {
+if (env.NODE_ENV !== 'production') {
   globalForPrisma.__prismaClient = prisma;
 }
 
