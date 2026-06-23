@@ -1,6 +1,7 @@
 import { PrismaClient } from '../../generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
 
 const globalForPrisma = globalThis as unknown as {
   __prismaClient: PrismaClient | undefined;
@@ -34,7 +35,7 @@ if (env.NODE_ENV !== 'production') {
  */
 export async function disconnectDatabase(): Promise<void> {
   await prisma.$disconnect();
-  console.info('[database/prisma] Disconnected.');
+  logger.info('Database disconnected');
 }
 
 /**

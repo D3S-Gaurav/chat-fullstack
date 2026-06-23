@@ -4,6 +4,7 @@ import type { Request, Response, NextFunction } from 'express';
 import * as z from 'zod';
 import { Prisma } from '../../generated/prisma/client.js';
 import { env } from '../config/env.js';
+import { logger } from '../config/logger.js';
 
 //Custom Error Classes
 
@@ -59,10 +60,6 @@ interface ErrorResponseBody {
 
 //Global Error Handler
 
-/**
- * Express error-handling middleware (4-param signature).
- * Mount as the **last** middleware: `app.use(errorHandler)`
- */
 export function errorHandler(
   err: Error,
   req: Request,
@@ -109,9 +106,10 @@ export function errorHandler(
     message = 'Internal server error';
   }
 
-  // Log every error
-  console.error(
-    `[${new Date().toISOString()}] ${req.method} ${req.path} → ${String(statusCode)}: ${err.message}`,
+  // Log every error via structured async logger
+  logger.error(
+    { statusCode, method: req.method, path: req.path, err },
+    `${req.method} ${req.path} → ${String(statusCode)}: ${err.message}`,
   );
 
   const body: ErrorResponseBody = {

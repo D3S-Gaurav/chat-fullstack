@@ -1,10 +1,3 @@
-/**
- * @module middleware/rateLimiter — Express rate-limiting presets.
- *
- * In production, set `app.set('trust proxy', 1)` before mounting these
- * so `express-rate-limit` reads the real client IP from X-Forwarded-For.
- */
-
 import type { Request, Response, NextFunction } from 'express';
 import { rateLimit, type Options } from 'express-rate-limit';
 import { AppError } from './errorHandler.js';
@@ -31,11 +24,6 @@ export const globalLimiter = rateLimit({
   handler: rateLimitHandler,
 });
 
-/**
- * Auth limiter — 10 requests per 15 minutes per IP.
- * Apply to login and register routes only.
- * Only failed attempts count against the limit.
- */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 10,

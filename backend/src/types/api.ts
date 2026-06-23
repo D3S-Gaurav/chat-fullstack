@@ -1,7 +1,6 @@
-/** User roles for authorization checks. */
-export type Role = 'ADMIN' | 'MODERATOR' | 'MEMBER';
+export { Role } from '../../generated/prisma/client.js';
 
-/** Decoded JWT payload attached to authenticated requests. */
+import type { Role } from '../../generated/prisma/client.js';
 export interface AuthUser {
   id: string;
   email: string;
@@ -9,12 +8,10 @@ export interface AuthUser {
   role: Role;
 }
 
-/**
- * Augment the Express Request interface so `req.user` is available
- * on any authenticated route without manual casting.
- */
+
 declare module 'express-serve-static-core' {
   interface Request {
     user?: AuthUser;
   }
 }
+

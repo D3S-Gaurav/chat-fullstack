@@ -1,16 +1,3 @@
-/**
- * @module config/env
- *
- * Validates and exports all environment variables at startup using Zod.
- *
- * Why centralise env access? Scattering `process.env['X']` across the
- * codebase makes it impossible to know which variables the app needs
- * until it crashes at runtime. Validating once on boot guarantees every
- * downstream module receives correctly typed, non-nullable values.
- *
- * Import `env` anywhere — never read `process.env` directly elsewhere.
- */
-
 import * as z from 'zod';
 
 const envSchema = z.object({
@@ -43,7 +30,7 @@ const envSchema = z.object({
  * Throws a formatted error on boot if any variable is missing or invalid.
  */
 function validateEnv(): z.infer<typeof envSchema> {
-  const result = envSchema.safeParse(process.env);
+  const result = envSchema.safeParse({ ...process.env });
 
   if (!result.success) {
     const formatted = result.error.issues

@@ -1,57 +1,40 @@
 # Chat Fullstack
 
+A real-time group chat application built with Express, Prisma, and TypeScript.
+
+## Project Structure
+
 ```text
 chat-fullstack/
 │
 ├── backend/
 │   ├── prisma/
+│   │   ├── migrations/
 │   │   └── schema.prisma
 │   │
 │   ├── src/
 │   │   ├── config/
-│   │   │   └── env.ts
+│   │   │   ├── env.ts          # Zod-validated environment config
+│   │   │   └── logger.ts       # Pino structured async logger
 │   │   │
 │   │   ├── database/
-│   │   │   └── prisma.ts
+│   │   │   └── prisma.ts       # PrismaClient singleton + health check
 │   │   │
 │   │   ├── middleware/
-│   │   │   ├── auth.ts
-│   │   │   └── errorHandler.ts
-│   │   │
-│   │   ├── routes/
-│   │   │   ├── auth.routes.ts
-│   │   │   ├── chat.routes.ts
-│   │   │   └── room.routes.ts
-│   │   │
-│   │   ├── services/
-│   │   │   ├── auth.service.ts
-│   │   │   ├── chat.service.ts
-│   │   │   ├── room.service.ts
-│   │   │   └── user.service.ts
-│   │   │
-│   │   ├── socket/
-│   │   │   ├── handlers/
-│   │   │   │   ├── chat.handler.ts
-│   │   │   │   ├── room.handler.ts
-│   │   │   │   └── typing.handler.ts
-│   │   │   │
-│   │   │   └── index.ts
-│   │   │
-│   │   ├── schemas/
-│   │   │   ├── auth.schema.ts
-│   │   │   └── chat.schema.ts
+│   │   │   ├── auth.ts         # JWT authentication + role-based authz
+│   │   │   ├── errorHandler.ts # Custom error classes + global handler
+│   │   │   ├── rateLimiter.ts  # Express rate-limiting presets
+│   │   │   └── validate.ts     # Zod request validation middleware
 │   │   │
 │   │   ├── types/
-│   │   │   ├── api.ts
-│   │   │   ├── chat.ts
-│   │   │   └── socket.ts
+│   │   │   └── api.ts          # AuthUser, Role, Express augmentation
 │   │   │
-│   │   └── server.ts
+│   │   └── server.ts           # Application entry point
 │   │
-│   ├── .env
+│   ├── .env.example
 │   ├── package.json
-│   ├── tsconfig.json
-│   └── prisma.config.js
+│   ├── prisma.config.ts
+│   └── tsconfig.json
 │
-└── frontend/
+└── frontend/                   # (Not yet implemented)
 ```
