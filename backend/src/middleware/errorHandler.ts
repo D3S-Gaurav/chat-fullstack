@@ -25,11 +25,11 @@ export class AppError extends Error {
  * Always responds with 422 Unprocessable Entity.
  */
 export class ValidationError extends AppError {
-  public readonly fields: Record<string, unknown>;
+  public readonly fields: { formErrors: string[]; fieldErrors: Record<string, string[]> };
 
   constructor(zodError: z.ZodError) {
     super(422, 'Validation failed');
-    this.fields = zodError.format();
+    this.fields = z.flattenError(zodError);
     Object.setPrototypeOf(this, new.target.prototype);
   }
 }
@@ -53,7 +53,7 @@ interface ErrorResponseBody {
   success: false;
   statusCode: number;
   message: string;
-  fields?: Record<string, unknown>;
+  fields?: { formErrors: string[]; fieldErrors: Record<string, string[]> };
   expired?: true;
   stack?: string;
 }
@@ -68,7 +68,7 @@ export function errorHandler(
 ): void {
   let statusCode = 500;
   let message = 'Internal server error';
-  let fields: Record<string, unknown> | undefined;
+  let fields: { formErrors: string[]; fieldErrors: Record<string, string[]> } | undefined;
   let expired: true | undefined;
 
   //AppError (includes ValidationError, ExpiredTokenError)
@@ -82,7 +82,7 @@ export function errorHandler(
   else if (err instanceof z.ZodError) {
     statusCode = 422;
     message = 'Validation failed';
-    fields = err.format();
+    fields = z.flattenError(err);
   }
   //Prisma known errors
   else if (err instanceof Prisma.PrismaClientKnownRequestError) {
