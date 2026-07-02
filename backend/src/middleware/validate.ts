@@ -17,13 +17,13 @@ export function validate(
     // Replace raw input with the parsed & coerced output
     switch (target) {
       case 'body':
-        req.body = result.data;
+        Object.defineProperty(req, 'body', { value: result.data, configurable: true, writable: true, enumerable: true });
         break;
       case 'params':
-        req.params = result.data as typeof req.params;
+        Object.defineProperty(req, 'params', { value: result.data, configurable: true, writable: true, enumerable: true });
         break;
       case 'query':
-        req.query = result.data as typeof req.query;
+        Object.defineProperty(req, 'query', { value: result.data, configurable: true, writable: true, enumerable: true });
         break;
     }
 

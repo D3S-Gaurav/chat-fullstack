@@ -1,15 +1,22 @@
 import express from 'express';
 import { createServer } from 'node:http';
+import cors from 'cors';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import { prisma, disconnectDatabase } from './database/prisma.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { globalLimiter } from './middleware/rateLimiter.js';
+import { authRouter } from './routes/auth.routes.js';
+import { roomRouter } from './routes/room.routes.js';
+import { chatRouter } from './routes/chat.routes.js';
+import { userRouter } from './routes/user.routes.js';
+import { initializeSocket } from './socket/index.js';
 
 const app = express();
 const server = createServer(app);
 
 app.set('trust proxy', 1);
+app.use(cors({ origin: env.CORS_ORIGINS, credentials: true }));
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(globalLimiter);
@@ -22,6 +29,11 @@ app.get('/health', async (_req, res) => {
     res.status(503).json({ status: 'degraded', database: 'unreachable' });
   }
 });
+
+app.use('/api/auth', authRouter);
+app.use('/api/users', userRouter);
+app.use('/api/groups', roomRouter);
+app.use('/api/messages', chatRouter);
 
 app.use((_req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });
@@ -46,6 +58,8 @@ async function shutdown(signal: string): Promise<void> {
 
 process.on('SIGINT', () => void shutdown('SIGINT'));
 process.on('SIGTERM', () => void shutdown('SIGTERM'));
+
+initializeSocket(server);
 
 server.listen(env.PORT, () => {
   logger.info(
