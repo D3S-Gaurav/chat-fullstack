@@ -34,6 +34,8 @@ export type TypedServer = Server<
 /** Tracks online users: userId → Set of socket IDs (supports multiple tabs). */
 const onlineUsers = new Map<string, Set<string>>();
 
+let ioInstance: TypedServer | null = null;
+
 /** Creates and configures the Socket.io server. */
 export function initializeSocket(httpServer: HttpServer): TypedServer {
   const io: TypedServer = new Server(httpServer, {
@@ -116,5 +118,10 @@ export function initializeSocket(httpServer: HttpServer): TypedServer {
     });
   });
 
+  ioInstance = io;
   return io;
+}
+
+export function getIO(): TypedServer | null {
+  return ioInstance;
 }

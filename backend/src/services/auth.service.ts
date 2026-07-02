@@ -38,8 +38,6 @@ function signToken(user: AuthUser): string {
   );
 }
 
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-
 /** Creates a new user and returns a signed JWT. */
 export async function register(input: RegisterInput): Promise<{ user: AuthUser; token: string }> {
   const passwordHash = await hashPassword(input.password);
@@ -56,8 +54,8 @@ export async function register(input: RegisterInput): Promise<{ user: AuthUser; 
 
     const token = signToken(user);
     return { user, token };
-  } catch (err) {
-    if (err instanceof PrismaClientKnownRequestError && err.code === 'P2002') {
+  } catch (err: any) {
+    if (err && err.code === 'P2002') {
       const target = err.meta?.target as string[];
       const field = target ? target.join(', ') : 'field';
       throw new AppError(409, `An account with that ${field} already exists.`);
