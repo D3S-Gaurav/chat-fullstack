@@ -48,6 +48,7 @@ model GroupMember {
   group Group @relation(fields: [groupId], references: [id])
 
   @@unique([userId, groupId])
+  @@index([groupId])
 }
 
 model Message {
@@ -62,6 +63,9 @@ model Message {
   group   Group @relation(fields: [groupId], references: [id])
 
   tags Tag[]
+
+  @@index([groupId, createdAt])
+  @@index([senderId])
 }
 
 model Tag {

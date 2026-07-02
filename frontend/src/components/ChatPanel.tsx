@@ -123,12 +123,10 @@ export default function ChatPanel({ groupId }: ChatPanelProps) {
     }
 
     try {
-      // Use socket for real-time delivery
-      const socket = getSocket(token);
-      socket.emit('message:send', { groupId, content });
-    } catch (err) {
-      console.error('Send failed, falling back to REST', err);
       await messageApi.sendMessage({ groupId, content }, token);
+    } catch (err) {
+      console.error('Send failed', err);
+      alert('Failed to send message.');
     } finally {
       setSending(false);
     }

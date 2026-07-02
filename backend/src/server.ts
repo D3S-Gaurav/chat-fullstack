@@ -1,6 +1,7 @@
 import express from 'express';
 import { createServer } from 'node:http';
 import cors from 'cors';
+import helmet from 'helmet';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import { prisma, disconnectDatabase } from './database/prisma.js';
@@ -16,6 +17,7 @@ const app = express();
 const server = createServer(app);
 
 app.set('trust proxy', 1);
+app.use(helmet());
 app.use(cors({ origin: env.CORS_ORIGINS, credentials: true }));
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));

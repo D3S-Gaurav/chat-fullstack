@@ -7,7 +7,9 @@ let socket: Socket | null = null;
 export function getSocket(token: string): Socket {
   if (socket?.connected) return socket;
 
-  socket = io('/', {
+  const wsUrl = import.meta.env.VITE_WS_URL || '/';
+
+  socket = io(wsUrl, {
     auth: { token },
     transports: ['websocket', 'polling'],
   });

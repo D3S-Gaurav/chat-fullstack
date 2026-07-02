@@ -21,7 +21,22 @@ export async function createGroup(input: CreateGroupInput, creatorId: string) {
 }
 
 /** Returns a group by ID with its members. */
-export async function getGroupById(groupId: string) {
+export async function assertGroupAdmin(groupId: string, userId: string) {
+  const membership = await prisma.groupMember.findUnique({
+    where: { userId_groupId: { userId, groupId } },
+  });
+  if (!membership) {
+    throw new AppError(403, 'You are not a member of this group');
+  }
+  if (membership.role !== 'ADMIN') {
+    throw new AppError(403, 'Admin role is required for this action');
+  }
+  return membership;
+}
+
+export async function getGroupById(groupId: string, requesterId: string) {
+  await assertMembership(groupId, requesterId);
+  
   const group = await prisma.group.findUnique({
     where: { id: groupId },
     include: {
@@ -55,8 +70,8 @@ export async function getUserGroups(userId: string) {
 }
 
 /** Updates a group's name and/or description. */
-export async function updateGroup(groupId: string, input: UpdateGroupInput) {
-  await assertGroupExists(groupId);
+export async function updateGroup(groupId: string, input: UpdateGroupInput, requesterId: string) {
+  await assertGroupAdmin(groupId, requesterId);
 
   return prisma.group.update({
     where: { id: groupId },
@@ -68,18 +83,39 @@ export async function updateGroup(groupId: string, input: UpdateGroupInput) {
 }
 
 /** Adds a user to a group as a MEMBER. */
-export async function addMember(groupId: string, userId: string) {
-  await assertGroupExists(groupId);
+export async function addMember(groupId: string, targetUserId: string, requesterId: string) {
+  await assertGroupAdmin(groupId, requesterId);
+  
+  // Verify target user exists
+  const targetUser = await prisma.user.findUnique({ where: { id: targetUserId } });
+  if (!targetUser) {
+    throw new AppError(404, 'Target user not found');
+  }
+
+  // Check if they're already a member
+  const existing = await prisma.groupMember.findUnique({
+    where: { userId_groupId: { userId: targetUserId, groupId } },
+  });
+  if (existing) {
+    throw new AppError(400, 'User is already a member of this group');
+  }
 
   return prisma.groupMember.create({
-    data: { groupId, userId, role: 'MEMBER' },
+    data: { groupId, userId: targetUserId, role: 'MEMBER' },
+    include: { user: { select: { id: true, username: true } } },
   });
 }
 
-/** Removes a user from a group. */
-export async function removeMember(groupId: string, userId: string) {
+export async function removeMember(groupId: string, targetUserId: string, requesterId: string) {
+  // If removing themselves, allow it. Otherwise require ADMIN.
+  if (targetUserId !== requesterId) {
+    await assertGroupAdmin(groupId, requesterId);
+  } else {
+    await assertMembership(groupId, requesterId);
+  }
+
   const membership = await prisma.groupMember.findUnique({
-    where: { userId_groupId: { userId, groupId } },
+    where: { userId_groupId: { userId: targetUserId, groupId } },
   });
 
   if (!membership) {
