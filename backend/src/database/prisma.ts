@@ -10,7 +10,9 @@ const globalForPrisma = globalThis as unknown as {
 function createPrismaClient(): PrismaClient {
   const adapter = new PrismaPg({
     connectionString: env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
+    // Only bypass certificate validation in development (for self-signed local certs).
+    // In production, always verify TLS certificates to prevent MITM attacks.
+    ssl: { rejectUnauthorized: env.NODE_ENV === 'production' },
   });
 
   return new PrismaClient({

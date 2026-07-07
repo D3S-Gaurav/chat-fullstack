@@ -23,6 +23,12 @@ const envSchema = z.object({
 
   /** JWT expiry duration (e.g. "7d", "24h"). */
   JWT_EXPIRES_IN: z.string().default('7d'),
+
+  /**
+   * Number of reverse proxies to trust for X-Forwarded-For.
+   * Set to 0 to disable proxy trust; 1 for a single proxy (e.g. nginx).
+   */
+  TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(1),
 });
 
 /**

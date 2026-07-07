@@ -8,6 +8,7 @@ import {
   updateGroupSchema,
   addMemberSchema,
   idParamSchema,
+  memberActionParamSchema,
 } from '../schemas/chat.schema.js';
 import {
   createGroup,
@@ -18,7 +19,6 @@ import {
   getUserGroups,
 } from '../services/room.service.js';
 import { getIO } from '../socket/index.js';
-import * as roomService from '../services/room.service.js';
 
 export const roomRouter = Router();
 
@@ -95,16 +95,9 @@ roomRouter.post(
   },
 );
 
-import { z } from 'zod';
-
 roomRouter.delete(
   '/:id/members/:userId',
-  validate({
-    params: z.object({
-      id: z.string().uuid(),
-      userId: z.string().uuid(),
-    }),
-  }),
+  validate(memberActionParamSchema, 'params'),
   async (req, res, next) => {
     try {
       const { id: groupId, userId } = req.params as { id: string; userId: string };

@@ -86,3 +86,11 @@ export const idParamSchema = z.object({
 });
 
 export type IdParam = z.infer<typeof idParamSchema>;
+
+/** Route params for member actions: `:id` (groupId) and `:userId`. */
+export const memberActionParamSchema = z.object({
+  id: z.uuid({ error: 'Invalid group ID parameter' }),
+  userId: z.uuid({ error: 'Invalid user ID parameter' }),
+});
+
+export type MemberActionParam = z.infer<typeof memberActionParamSchema>;

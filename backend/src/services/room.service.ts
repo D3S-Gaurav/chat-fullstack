@@ -122,6 +122,16 @@ export async function removeMember(groupId: string, targetUserId: string, reques
     throw new AppError(404, 'User is not a member of this group');
   }
 
+  // Prevent removing the last admin — would orphan the group
+  if (membership.role === 'ADMIN') {
+    const adminCount = await prisma.groupMember.count({
+      where: { groupId, role: 'ADMIN' },
+    });
+    if (adminCount <= 1) {
+      throw new AppError(400, 'Cannot remove the last admin from a group. Transfer admin role first.');
+    }
+  }
+
   return prisma.groupMember.delete({
     where: { id: membership.id },
   });
@@ -140,10 +150,3 @@ export async function assertMembership(groupId: string, userId: string) {
   return membership;
 }
 
-/** Throws 404 if the group does not exist. */
-async function assertGroupExists(groupId: string) {
-  const group = await prisma.group.findUnique({ where: { id: groupId } });
-  if (!group) {
-    throw new AppError(404, 'Group not found');
-  }
-}

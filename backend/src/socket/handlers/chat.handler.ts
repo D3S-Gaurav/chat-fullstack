@@ -1,8 +1,8 @@
 /**
  * @module socket/handlers/chat — Real-time message broadcasting.
  *
- * Handles the `message:send` event: validates the payload, persists
- * the message via the chat service, and broadcasts it to the group room.
+ * Handles the `message:send` event: validates the payload via Zod,
+ * persists the message via the chat service, and broadcasts it to the group room.
  */
 
 import type { Socket } from 'socket.io';
@@ -15,6 +15,7 @@ import type {
   MessagePayload,
 } from '../../types/socket.js';
 import { sendMessage } from '../../services/chat.service.js';
+import { socketSendMessageSchema } from '../../schemas/socket.schema.js';
 import { logger } from '../../config/logger.js';
 
 type TypedSocket = Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
@@ -24,11 +25,18 @@ export function registerChatHandler(io: TypedServer, socket: TypedSocket): void 
 
   socket.on('message:send', async (payload) => {
     try {
+      // Validate the incoming payload before processing
+      const parsed = socketSendMessageSchema.safeParse(payload);
+      if (!parsed.success) {
+        socket.emit('error', { message: 'Invalid message payload' });
+        return;
+      }
+
       // Persist via the same service the REST API uses
       const message = await sendMessage(user.id, {
-        groupId: payload.groupId,
-        content: payload.content,
-        tags: payload.tags,
+        groupId: parsed.data.groupId,
+        content: parsed.data.content,
+        tags: parsed.data.tags,
       });
 
       const broadcast: MessagePayload = {
@@ -41,16 +49,19 @@ export function registerChatHandler(io: TypedServer, socket: TypedSocket): void 
       };
 
       // Broadcast to everyone in the group room (including the sender)
-      io.to(payload.groupId).emit('message:new', broadcast);
+      io.to(parsed.data.groupId).emit('message:new', broadcast);
 
       logger.debug(
-        { messageId: message.id, groupId: payload.groupId, senderId: user.id },
+        { messageId: message.id, groupId: parsed.data.groupId, senderId: user.id },
         'Message broadcast to room',
       );
     } catch (err) {
       logger.error({ err, userId: user.id }, 'Failed to send message via socket');
+      // Never expose raw internal error messages to the client
       socket.emit('error', {
-        message: err instanceof Error ? err.message : 'Failed to send message',
+        message: err instanceof Error && 'statusCode' in err
+          ? err.message
+          : 'Failed to send message',
       });
     }
   });
