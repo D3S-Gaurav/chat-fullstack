@@ -18,6 +18,7 @@ export default function ChatPanel({ groupId }: ChatPanelProps) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Map<string, string>>(new Map());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -44,7 +45,10 @@ export default function ChatPanel({ groupId }: ChatPanelProps) {
         setMessages(msgData.messages.reverse()); // API returns newest-first
         setGroupInfo(group);
       })
-      .catch(console.error)
+      .catch(() => {
+        setSendError('Failed to load messages. Please refresh.');
+        setTimeout(() => setSendError(null), 4_000);
+      })
       .finally(() => setLoading(false));
       
     return () => {
@@ -90,8 +94,9 @@ export default function ChatPanel({ groupId }: ChatPanelProps) {
     }
 
     function handleError(payload: { message: string }) {
-      console.error('Socket error:', payload.message);
-      alert(`Error: ${payload.message}`);
+      setSendError(payload.message);
+      // Auto-clear error toast after 4 seconds
+      setTimeout(() => setSendError(null), 4_000);
     }
 
     socket.on('message:new', handleNewMessage);
@@ -124,9 +129,9 @@ export default function ChatPanel({ groupId }: ChatPanelProps) {
 
     try {
       await messageApi.sendMessage({ groupId, content }, token);
-    } catch (err) {
-      console.error('Send failed', err);
-      alert('Failed to send message.');
+    } catch {
+      setSendError('Failed to send message. Please try again.');
+      setTimeout(() => setSendError(null), 4_000);
     } finally {
       setSending(false);
     }
@@ -258,6 +263,22 @@ export default function ChatPanel({ groupId }: ChatPanelProps) {
             <p className="pb-1 text-xs italic text-surface-400">
               {typingDisplay.join(', ')} {typingDisplay.length === 1 ? 'is' : 'are'} typing...
             </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Error Toast */}
+      <AnimatePresence>
+        {sendError && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="px-6"
+          >
+            <div className="mb-1 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">
+              {sendError}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

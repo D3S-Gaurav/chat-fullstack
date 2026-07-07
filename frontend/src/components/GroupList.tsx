@@ -20,12 +20,13 @@ export default function GroupList({ selectedGroupId, onSelectGroup }: GroupListP
   const [newDesc, setNewDesc] = useState('');
   const [creating, setCreating] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [createError, setCreateError] = useState('');
 
   useEffect(() => {
     if (!token) return;
     groupApi.getMyGroups(token)
       .then(setGroups)
-      .catch(console.error)
+      .catch(() => { /* Network failure is visible via empty list */ })
       .finally(() => setLoading(false));
   }, [token]);
 
@@ -44,7 +45,7 @@ export default function GroupList({ selectedGroupId, onSelectGroup }: GroupListP
       setShowCreate(false);
       onSelectGroup(group.id);
     } catch (err) {
-      console.error(err);
+      setCreateError(err instanceof Error ? err.message : 'Failed to create group');
     } finally {
       setCreating(false);
     }
@@ -97,7 +98,7 @@ export default function GroupList({ selectedGroupId, onSelectGroup }: GroupListP
             <input
               type="text"
               value={newName}
-              onChange={(e) => setNewName(e.target.value)}
+              onChange={(e) => { setNewName(e.target.value); setCreateError(''); }}
               placeholder="Group name"
               required
               className="mb-2 w-full rounded-lg border border-surface-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary-400"
@@ -107,8 +108,11 @@ export default function GroupList({ selectedGroupId, onSelectGroup }: GroupListP
               value={newDesc}
               onChange={(e) => setNewDesc(e.target.value)}
               placeholder="Description (optional)"
-              className="mb-3 w-full rounded-lg border border-surface-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary-400"
+              className="mb-2 w-full rounded-lg border border-surface-200 bg-white px-3 py-2 text-sm outline-none focus:border-primary-400"
             />
+            {createError && (
+              <p className="mb-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-600">{createError}</p>
+            )}
             <button
               type="submit"
               disabled={creating}
