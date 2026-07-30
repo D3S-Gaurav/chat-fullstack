@@ -15,8 +15,16 @@ interface ApiResponse<T> {
 }
 
 class ApiError extends Error {
-  constructor(public statusCode: number, message: string, public fields?: unknown) {
+  /* Fields are declared and assigned explicitly rather than via constructor
+     parameter properties, which `erasableSyntaxOnly` disallows. */
+  readonly statusCode: number;
+  readonly fields: unknown;
+
+  constructor(statusCode: number, message: string, fields?: unknown) {
     super(message);
+    this.name = 'ApiError';
+    this.statusCode = statusCode;
+    this.fields = fields;
   }
 }
 
@@ -112,7 +120,12 @@ export interface Group {
   _count?: { members: number; messages: number };
 }
 
-export interface GroupDetail extends Group {
+/**
+ * `GET /groups/:id` selects only `_count.messages`, whereas the list endpoint
+ * (`GET /groups`) also returns `_count.members`. The narrower shape cannot
+ * extend `Group` directly, so `_count` is omitted and redeclared.
+ */
+export interface GroupDetail extends Omit<Group, '_count'> {
   members: { userId: string; role: string; user: { id: string; username: string } }[];
   _count: { messages: number };
 }
