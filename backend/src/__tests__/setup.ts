@@ -10,10 +10,45 @@
  *   • Direct access to the Prisma client for seed/teardown
  */
 
-import { type TestAPI, beforeAll, afterAll, beforeEach } from 'vitest';
 import supertest from 'supertest';
 import { createApp } from '../app.js';
 import { prisma } from '../database/prisma.js';
+
+/**
+ * Guard against catastrophic data loss.
+ *
+ * `cleanDatabase()` below issues `DELETE FROM` against every table. If the
+ * suite is ever pointed at a real database — e.g. by loading the app's own
+ * `.env`, which targets a hosted Supabase instance — it would irreversibly
+ * wipe production data. Refuse to run unless the target is unmistakably a
+ * local, throwaway test database.
+ */
+function assertSafeTestDatabase(): void {
+  const url = process.env.DATABASE_URL;
+
+  if (!url) {
+    throw new Error(
+      '[test/setup] DATABASE_URL is not set. It is normally injected by ' +
+      'vitest.config.ts — run the suite via `npm test`.',
+    );
+  }
+
+  const { hostname, pathname } = new URL(url);
+  const isLocalHost = ['localhost', '127.0.0.1', '::1', 'postgres'].includes(hostname);
+  const isTestDatabase = /test/i.test(pathname);
+
+  if (!isLocalHost || !isTestDatabase) {
+    throw new Error(
+      '[test/setup] REFUSING TO RUN — the test suite deletes every row in ' +
+      'every table.\n' +
+      `  host="${hostname}" database="${pathname.replace(/^\//, '')}"\n` +
+      '  Required: a localhost host AND a database name containing "test".\n' +
+      '  Set TEST_DATABASE_URL to a throwaway database instead.',
+    );
+  }
+}
+
+assertSafeTestDatabase();
 
 export const app = createApp();
 
