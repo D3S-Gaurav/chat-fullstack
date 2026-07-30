@@ -1,0 +1,32 @@
+# render.yaml — Render Blueprint
+# Deploy with: https://render.com/docs/blueprint-spec
+# Or connect the GitHub repo in the Render dashboard.
+
+services:
+  - type: web
+    name: chatflow-api
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: |
+      cd backend
+      npm ci
+      npx prisma generate
+      npm run build
+    startCommand: |
+      cd backend
+      npx prisma migrate deploy
+      node --env-file=.env dist/src/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false   # Set manually in dashboard (Neon connection string)
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false   # Set to your Vercel frontend URL
+      - key: TRUST_PROXY
+        value: "1"
+    healthCheckPath: /health
+    autoDeploy: true
