@@ -189,18 +189,12 @@ The server handles `SIGINT` and `SIGTERM` signals, closes the HTTP server, disco
 All logging goes through [Pino](https://github.com/pinojs/pino) — the fastest Node.js logger. Logs are structured JSON in production (machine-parseable) and human-readable in development. Every error includes the HTTP method, path, status code, and error object for easy debugging.
 
 ### 9. Prisma Driver Adapter Pattern
-Instead of using Prisma's default connection handling, we use the **`@prisma/adapter-pg`** driver adapter with explicit SSL configuration. TLS certificate validation is enforced in production but relaxed in development (for self-signed local certs). The client is a global singleton with hot-reload safety.
+Instead of using Prisma's default connection handling, we use the **`@prisma/adapter-pg`** driver adapter with explicit SSL configuration. TLS is negotiated based on the connection host: hosted databases get a real handshake (with certificate validation enforced in production), while `localhost` and the Docker/CI service containers — which are not built with SSL support — skip it. The client is a global singleton with hot-reload safety.
 
 ### 10. Glassmorphism UI with Framer Motion
 The frontend uses a **glassmorphism design system** — translucent cards, backdrop blur, soft shadows, and gradient backgrounds. Every interaction is animated via Framer Motion: page transitions, tab indicators with `layoutId`, message entrance animations, typing indicator reveals, and micro-interactions on buttons (`whileHover`, `whileTap`).
 
-### 11. Boot-Time Environment Validation
-`config/env.ts` parses `process.env` through a **Zod schema on boot**. The server refuses to start if any variable is missing or malformed — no `process.env.PORT` scattered across the codebase. Every access is validated and typed.
-
-### 12. Clean Layer Separation
-Routes are thin dispatchers. Business logic lives in the **service layer**. Database access is isolated in `database/`. Socket handlers are isolated in `socket/handlers/`. Both REST routes and Socket.IO handlers reuse the same service functions (`sendMessage()`, `assertMembership()`).
-
-### 13. Modern Stack
+### 11. Modern Stack
 React 19, Express 5, Prisma 7, Tailwind v4, TypeScript 6 (strict), and oxlint. Three versioned Prisma migrations tracking schema evolution.
 
 ---
@@ -393,13 +387,22 @@ The backend container runs Prisma migrations on start. See `docker-compose.yml` 
 
 ## 🧪 Testing
 
-The backend has a Vitest test suite covering authentication, RBAC, pagination, rate limiting, Zod validation, and Socket.IO handshake authentication.
+**32 tests across 6 suites**, running green in CI against a PostgreSQL 17 service container. Coverage spans authentication, RBAC, cursor pagination, rate limiting, Zod validation, and Socket.IO handshake authentication.
 
 ```bash
 cd backend
 npm test           # run all tests
 npm run test:watch # watch mode
 ```
+
+> The suite issues `DELETE FROM` against every table between files, so it
+> refuses to run unless `DATABASE_URL` points at a **local** database whose
+> name contains `test`. Override with `TEST_DATABASE_URL` if needed — never
+> with a database you care about.
+>
+> ```bash
+> sudo -u postgres psql -c "CREATE DATABASE chatflow_test OWNER postgres;"
+> ```
 
 Test categories:
 - **auth** — register/login, duplicate email, bad password, JWT shape
