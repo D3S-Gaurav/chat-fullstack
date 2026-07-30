@@ -1,4 +1,9 @@
 <p align="center">
+  <a href="https://github.com/D3S-Gaurav/chat-fullstack/actions/workflows/ci.yml"><img src="https://github.com/D3S-Gaurav/chat-fullstack/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <img src="https://img.shields.io/github/license/D3S-Gaurav/chat-fullstack?style=flat-square" alt="License" />
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/TypeScript-6.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
   <img src="https://img.shields.io/badge/Express-5.x-000000?style=for-the-badge&logo=express&logoColor=white" />
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" />
@@ -9,9 +14,14 @@
 
 <h1 align="center">💬 ChatFlow</h1>
 <p align="center">
-  A <strong>production-grade, real-time group chat application</strong> built from scratch with a security-first mindset.<br/>
+  A <strong>real-time group chat application</strong> built from scratch with a security-first mindset.<br/>
   Full-stack TypeScript · Socket.IO · Prisma ORM · React 19 · Framer Motion
 </p>
+
+<!--
+  🔗 Live Demo: TODO — add URL after deployment
+  Demo credentials: demo@chatflow.dev / ChatFlowDemo!2026
+-->
 
 ---
 
@@ -21,22 +31,26 @@
 - [Architecture](#-architecture)
 - [Key Features](#-key-features)
 - [Security Hardening](#-security-hardening)
-- [What We Did Special](#-what-we-did-special)
+- [Engineering Decisions](#-engineering-decisions)
 - [Tech Stack](#-tech-stack)
 - [Project Structure](#-project-structure)
 - [Getting Started](#-getting-started)
+- [Docker](#-docker)
+- [Testing](#-testing)
+- [Load Testing](#-load-testing)
 - [Environment Variables](#-environment-variables)
 - [API Reference](#-api-reference)
 - [Socket.IO Events](#-socketio-events)
 - [Database Schema](#-database-schema)
+- [Demo](#-demo)
 
 ---
 
 ## 🌐 Overview
 
-ChatFlow is a **real-time group messaging platform** that demonstrates how to build a production-quality full-stack application without relying on BaaS platforms or shortcuts. Every layer — from password hashing to WebSocket room management — is hand-rolled with intent and security in mind.
+ChatFlow is a **real-time group messaging platform** built without BaaS platforms or shortcuts. Every layer — from password hashing to WebSocket room management — is hand-implemented with intent and security in mind.
 
-This isn't a tutorial project. It's engineered with the same patterns you'd find in production systems: structured logging, graceful shutdown, cursor-based pagination, role-based access control, tiered rate limiting, and a fully typed Socket.IO event contract between client and server.
+The codebase applies patterns common to production systems: structured logging, graceful shutdown, cursor-based pagination, role-based access control, tiered rate limiting, and a fully typed Socket.IO event contract between client and server. CI, tests, Docker, and load testing are in place to back those claims.
 
 ---
 
@@ -146,7 +160,7 @@ This project went through **two full security audits**. Here's what's in place:
 
 ---
 
-## 🌟 What We Did Special
+## 🌟 Engineering Decisions
 
 These are the engineering decisions that set this project apart from a typical CRUD chat app:
 
@@ -179,6 +193,15 @@ Instead of using Prisma's default connection handling, we use the **`@prisma/ada
 
 ### 10. Glassmorphism UI with Framer Motion
 The frontend uses a **glassmorphism design system** — translucent cards, backdrop blur, soft shadows, and gradient backgrounds. Every interaction is animated via Framer Motion: page transitions, tab indicators with `layoutId`, message entrance animations, typing indicator reveals, and micro-interactions on buttons (`whileHover`, `whileTap`).
+
+### 11. Boot-Time Environment Validation
+`config/env.ts` parses `process.env` through a **Zod schema on boot**. The server refuses to start if any variable is missing or malformed — no `process.env.PORT` scattered across the codebase. Every access is validated and typed.
+
+### 12. Clean Layer Separation
+Routes are thin dispatchers. Business logic lives in the **service layer**. Database access is isolated in `database/`. Socket handlers are isolated in `socket/handlers/`. Both REST routes and Socket.IO handlers reuse the same service functions (`sendMessage()`, `assertMembership()`).
+
+### 13. Modern Stack
+React 19, Express 5, Prisma 7, Tailwind v4, TypeScript 6 (strict), and oxlint. Three versioned Prisma migrations tracking schema evolution.
 
 ---
 
@@ -351,6 +374,60 @@ Navigate to `http://localhost:5173` — register an account, create a group, and
 
 ---
 
+## 🐳 Docker
+
+Run the full stack with Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+This starts:
+- **PostgreSQL 17** on port 5432
+- **Backend** on port 3000 (with health check)
+- **Frontend** (nginx) on port 80
+
+The backend container runs Prisma migrations on start. See `docker-compose.yml` for configuration.
+
+---
+
+## 🧪 Testing
+
+The backend has a Vitest test suite covering authentication, RBAC, pagination, rate limiting, Zod validation, and Socket.IO handshake authentication.
+
+```bash
+cd backend
+npm test           # run all tests
+npm run test:watch # watch mode
+```
+
+Test categories:
+- **auth** — register/login, duplicate email, bad password, JWT shape
+- **chat** — cursor pagination correctness across the `(groupId, createdAt)` composite index
+- **rooms** — RBAC: MEMBER cannot perform ADMIN actions
+- **ratelimit** — 30 msg/min limiter returns 429 on the 31st request
+- **validation** — Zod rejects malformed REST payloads
+- **socket** — `io.use()` rejects bad/absent tokens at handshake
+
+---
+
+## 📊 Load Testing
+
+k6-based load testing harness in `backend/load/`. See [`load/README.md`](backend/load/README.md) for full documentation.
+
+```bash
+cd backend
+npm run load:setup     # provision test data
+npm run load:socket    # WebSocket connection stress
+npm run load:messages  # message throughput
+npm run load:rest      # REST endpoint ceiling
+npm run load:teardown  # clean up
+```
+
+Results land in `load/results/` — see [`SUMMARY.md`](backend/load/results/SUMMARY.md).
+
+---
+
 ## 🔐 Environment Variables
 
 Create a `backend/.env` file based on `.env.example`:
@@ -481,13 +558,33 @@ All endpoints return `{ success: boolean, data: T }`. Errors return `{ success: 
 
 ---
 
+## 📸 Screenshots
+
+![Chat Panel](docs/screenshots/chat-panel.jpeg)
+
+*Direct message and group chat UI featuring glassmorphism design and real-time indicators.*
+
+---
+
+## 🎮 Demo
+
+A demo account is seeded for quick exploration:
+
+| | |
+|---|---|
+| **Email** | `demo@chatflow.dev` |
+| **Password** | `ChatFlowDemo!2026` |
+
+> After deploying, run `npm run seed` in the backend to create the demo account and a welcome group with sample messages.
+
+---
+
 ## 📄 License
 
-ISC
+[MIT](LICENSE)
 
 ---
 
 <p align="center">
-  Built with ☕ and intention — not scaffolded, not AI-generated boilerplate.<br/>
-  Every line of code exists for a reason.
+  Built with ☕ and intention.
 </p>

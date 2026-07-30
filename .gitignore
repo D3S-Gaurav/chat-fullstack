@@ -20,11 +20,6 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Images
-*.jpeg
-*.jpg
-*.png
-
 # Logs
 *.log
 npm-debug.log*
