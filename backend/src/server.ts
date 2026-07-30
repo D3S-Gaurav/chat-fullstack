@@ -1,50 +1,20 @@
-import express from 'express';
+/**
+ * @module server — Application entry point.
+ *
+ * Creates the HTTP server, initializes Socket.IO, and starts listening.
+ * Graceful shutdown is handled here. The Express app itself is built
+ * by `createApp()` in `app.ts` so it can be imported independently by tests.
+ */
+
 import { createServer } from 'node:http';
-import cors from 'cors';
-import helmet from 'helmet';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
-import { prisma, disconnectDatabase } from './database/prisma.js';
-import { errorHandler } from './middleware/errorHandler.js';
-import { globalLimiter } from './middleware/rateLimiter.js';
-import { authRouter } from './routes/auth.routes.js';
-import { roomRouter } from './routes/room.routes.js';
-import { chatRouter } from './routes/chat.routes.js';
-import { userRouter } from './routes/user.routes.js';
+import { disconnectDatabase } from './database/prisma.js';
 import { initializeSocket } from './socket/index.js';
+import { createApp } from './app.js';
 
-const app = express();
+const app = createApp();
 const server = createServer(app);
-
-// Only trust proxy headers in production (behind a reverse proxy like nginx/cloudflare)
-if (env.NODE_ENV === 'production') {
-  app.set('trust proxy', env.TRUST_PROXY);
-}
-app.use(helmet());
-app.use(cors({ origin: env.CORS_ORIGINS, credentials: true }));
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
-app.use(globalLimiter);
-
-app.get('/health', async (_req, res) => {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    res.status(200).json({ status: 'ok', uptime: process.uptime() });
-  } catch {
-    res.status(503).json({ status: 'degraded', database: 'unreachable' });
-  }
-});
-
-app.use('/api/auth', authRouter);
-app.use('/api/users', userRouter);
-app.use('/api/groups', roomRouter);
-app.use('/api/messages', chatRouter);
-
-app.use((_req, res) => {
-  res.status(404).json({ success: false, message: 'Route not found' });
-});
-
-app.use(errorHandler);
 
 async function shutdown(signal: string): Promise<void> {
   logger.info({ signal }, 'Shutdown signal received — cleaning up');
