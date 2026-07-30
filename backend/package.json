@@ -12,11 +12,18 @@
     "db:generate": "npx prisma generate",
     "db:migrate": "npx prisma migrate dev",
     "db:studio": "npx prisma studio",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "load:setup": "tsx load/harness/setup.ts",
+    "load:socket": "k6 run --out json=load/results/socket-connect.json load/k6/socket-connect.js",
+    "load:messages": "k6 run --out json=load/results/message-throughput.json load/k6/message-throughput.js",
+    "load:rest": "k6 run --out json=load/results/rest-baseline.json load/k6/rest-baseline.js",
+    "load:teardown": "tsx load/harness/teardown.ts",
+    "seed": "tsx scripts/seed-demo.ts"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
@@ -36,9 +43,13 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.9.3",
     "@types/pg": "^8.20.0",
+    "@types/supertest": "^7.2.1",
     "nodemon": "^3.1.14",
     "prisma": "^7.8.0",
+    "socket.io-client": "^4.8.3",
+    "supertest": "^7.2.2",
     "tsx": "^4.22.4",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.10"
   }
 }
