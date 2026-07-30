@@ -1,2 +1,5 @@
 # Backend-specific ignores (supplements root .gitignore)
 /generated/prisma
+
+# Load test shared state (contains JWTs — never commit)
+load/results/.shared-state.json
