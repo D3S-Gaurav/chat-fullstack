@@ -7,12 +7,32 @@ const globalForPrisma = globalThis as unknown as {
   __prismaClient: PrismaClient | undefined;
 };
 
+/**
+ * Local Postgres instances — the CI service container and `docker compose`
+ * — are not built with SSL support, and handing `pg` an `ssl` option makes
+ * it attempt a TLS handshake regardless, failing with "The server does not
+ * support SSL connections". Hosted databases (Supabase) require TLS, so
+ * decide from the connection host rather than from NODE_ENV.
+ */
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', 'postgres']);
+
+function isLocalDatabase(connectionString: string): boolean {
+  try {
+    return LOCAL_HOSTS.has(new URL(connectionString).hostname);
+  } catch {
+    // Unparseable connection string — assume remote and keep TLS on.
+    return false;
+  }
+}
+
 function createPrismaClient(): PrismaClient {
   const adapter = new PrismaPg({
     connectionString: env.DATABASE_URL,
     // Only bypass certificate validation in development (for self-signed local certs).
     // In production, always verify TLS certificates to prevent MITM attacks.
-    ssl: { rejectUnauthorized: env.NODE_ENV === 'production' },
+    ssl: isLocalDatabase(env.DATABASE_URL)
+      ? false
+      : { rejectUnauthorized: env.NODE_ENV === 'production' },
   });
 
   return new PrismaClient({
